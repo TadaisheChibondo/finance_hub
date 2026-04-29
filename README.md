@@ -1,4 +1,4 @@
-# finance_hub
+# finnexus
 
 A new Flutter project.
 
