@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // NEW: Import Supabase
+import 'package:finance_hub/screens/test_screen.dart';
 
 void main() async {
   // 1. Ensures Flutter is ready to execute background code
@@ -27,11 +28,7 @@ class FinanceHubApp extends StatelessWidget {
     return MaterialApp(
       title: 'Finance Hub',
       theme: ThemeData(primarySwatch: Colors.green),
-      home: const Scaffold(
-        body: Center(
-          child: Text('Offline & Online Databases Initialized. UI Pending.'),
-        ),
-      ),
+      home: const TestScreen(),
     );
   }
 }
