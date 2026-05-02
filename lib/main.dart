@@ -1,4 +1,14 @@
+// lib/main.dart
+
 import 'package:flutter/material.dart';
+import 'screens/splashscreen.dart';
+
+void main() {
+  runApp(const FinnexusApp());
+}
+
+class FinnexusApp extends StatelessWidget {
+  const FinnexusApp({super.key});
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // NEW: Import Supabase
 
@@ -25,6 +35,14 @@ class FinanceHubApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Finnexus',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primaryColor: const Color(0xFF1B5E20),
+        fontFamily: 'Roboto',
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      home: const SplashScreen(),
       title: 'Finance Hub',
       theme: ThemeData(primarySwatch: Colors.green),
       home: const Scaffold(
