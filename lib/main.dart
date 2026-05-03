@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // NEW: Import Supabase
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'advice_list_screen.dart';
 
 void main() async {
-  // 1. Ensures Flutter is ready to execute background code
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 2. Initialize Hive (The Offline Budgeting Engine)
+  // Initialize Hive
   await Hive.initFlutter();
   await Hive.openBox('budgetBox');
 
-  // 3. Initialize Supabase (The Online Loans & Advice Engine)
+  // Initialize Supabase
   await Supabase.initialize(
     url: 'https://hvcaxyzzziqmotrkjbzz.supabase.co',
     anonKey: 'sb_publishable_A3r5J0XMWoBBb-h5ZPkXtg_X8Tlpysi',
@@ -26,12 +27,18 @@ class FinanceHubApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Finance Hub',
-      theme: ThemeData(primarySwatch: Colors.green),
-      home: const Scaffold(
-        body: Center(
-          child: Text('Offline & Online Databases Initialized. UI Pending.'),
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.green,
+        scaffoldBackgroundColor: Colors.grey[100],
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.green,
+          foregroundColor: Colors.white,
+          centerTitle: true,
+          elevation: 0,
         ),
       ),
+      home: const AdviceListScreen(),
     );
   }
 }
