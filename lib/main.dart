@@ -1,26 +1,18 @@
-// lib/main.dart
-
 import 'package:flutter/material.dart';
-import 'screens/splashscreen.dart';
+import 'screens/expenses_list_screen.dart';
 
 void main() {
-  runApp(const FinnexusApp());
+  runApp(MyApp());
 }
 
-class FinnexusApp extends StatelessWidget {
-  const FinnexusApp({super.key});
-
+class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Finnexus',
+      title: 'Finance Hub',
+      theme: ThemeData(primarySwatch: Colors.green),
+      home: ExpensesListScreen(), // YOUR SCREEN ONLY
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: const Color(0xFF1B5E20),
-        fontFamily: 'Roboto',
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      home: const SplashScreen(),
     );
   }
 }
