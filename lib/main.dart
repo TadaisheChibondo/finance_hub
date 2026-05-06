@@ -3,9 +3,12 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 
-// Your custom imports
+// Backend Providers
 import 'providers/loan_provider.dart';
-import 'screens/test_screen.dart'; // Restored the test screen import
+
+// UI Screens
+import 'screens/test_screen.dart'; // Kept your test screen just in case!
+import 'screens/expenses_list_screen.dart'; // Your team's new UI screen
 
 void main() async {
   // 1. Ensures Flutter is ready to execute background code
@@ -40,8 +43,10 @@ class FinanceHubApp extends StatelessWidget {
     return MaterialApp(
       title: 'Finance Hub',
       theme: ThemeData(primarySwatch: Colors.green),
-      // Restored the live TestScreen instead of the dummy Scaffold
-      home: const TestScreen(),
+      debugShowCheckedModeBanner:
+          false, // Team added this to make the UI look clean!
+      // Switched from your TestScreen to the team's new UI!
+      home: ExpensesListScreen(),
     );
   }
 }
