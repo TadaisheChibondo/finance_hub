@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
+import 'screens/financial_advice.dart';
 
 // Backend
 import 'providers/loan_provider.dart';
@@ -61,11 +62,12 @@ class MainNavigator extends StatefulWidget {
 class _MainNavigatorState extends State<MainNavigator> {
   int _currentIndex = 0;
 
-  // The 3 screens your team built
+  // The 4 screens your team built
   final List<Widget> _screens = [
     const DashboardScreen(),
     const LoansScreen(),
     BudgetingScreen(), // Remove 'const' if your team's screen is stateful without const
+    const FinancialAdviceScreen(),
   ];
 
   @override
@@ -89,6 +91,10 @@ class _MainNavigatorState extends State<MainNavigator> {
             label: 'Loans',
           ),
           BottomNavigationBarItem(icon: Icon(Icons.pie_chart), label: 'Budget'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.lightbulb_outline),
+            label: 'Advice',
+          ),
         ],
       ),
     );

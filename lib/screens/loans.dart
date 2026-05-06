@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/loan_provider.dart';
 
 // ─── Colour tokens (shared across app) ───────────────────────────────────────
 const _bg = Color(0xFF0D0F14);
-const _surface = Color(0xFF161A23);
 const _card = Color(0xFF1E2330);
 const _cardAlt = Color(0xFF252B3A);
 const _green = Color(0xFF00E5A0);
-const _greenDim = Color(0xFF00A372);
 const _amber = Color(0xFFFFB547);
 const _red = Color(0xFFFF5C5C);
 const _blue = Color(0xFF4E9DFF);
-const _purple = Color(0xFFBF8FFF);
 const _textPrimary = Color(0xFFEEF0F6);
 const _textSecondary = Color(0xFF8A90A2);
 const _divider = Color(0xFF2A3045);
+
+extension _ColorAlphaExtension on Color {
+  Color withAlphaOpacity(double opacity) =>
+      withValues(alpha: opacity.clamp(0.0, 1.0));
+}
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 void main() => runApp(const _App());
@@ -132,9 +133,9 @@ class _LoansScreenState extends State<LoansScreen>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: _green.withOpacity(0.12),
+            color: _green.withAlphaOpacity(0.12),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _green.withOpacity(0.2)),
+            border: Border.all(color: _green.withAlphaOpacity(0.2)),
           ),
           child: Row(
             children: [
@@ -183,7 +184,7 @@ class _EligibilityCard extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: [Color(0xFF1A2E25), Color(0xFF0F1E2A)],
           ),
-          border: Border.all(color: _green.withOpacity(0.18)),
+          border: Border.all(color: _green.withAlphaOpacity(0.18)),
         ),
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -205,7 +206,7 @@ class _EligibilityCard extends StatelessWidget {
                           Text(
                             '\$',
                             style: TextStyle(
-                              color: _green.withOpacity(0.7),
+                              color: _green.withAlphaOpacity(0.7),
                               fontSize: 18,
                               fontWeight: FontWeight.w500,
                             ),
@@ -373,7 +374,7 @@ class _LoanRequestCard extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: _blue.withOpacity(0.12),
+                    color: _blue.withAlphaOpacity(0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -395,14 +396,14 @@ class _LoanRequestCard extends StatelessWidget {
                 inactiveTrackColor: _cardAlt,
                 thumbColor: _blue,
                 thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-                overlayColor: _blue.withOpacity(0.15),
+                overlayColor: _blue.withAlphaOpacity(0.15),
                 overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
               ),
               child: Slider(
-                value: amount,
-                min: 20,
-                max: 500,
-                divisions: 48,
+                value: amount, // This is a double
+                min: 20.0, // Add .0 to be explicit
+                max: 500.0, // Add .0 to be explicit
+                divisions: 48, // This MUST be an int
                 onChanged: onAmountChanged,
               ),
             ),
@@ -439,12 +440,12 @@ class _LoanRequestCard extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             decoration: BoxDecoration(
                               color: weeks == w
-                                  ? _blue.withOpacity(0.15)
+                                  ? _blue.withAlphaOpacity(0.15)
                                   : _cardAlt,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
                                 color: weeks == w
-                                    ? _blue.withOpacity(0.4)
+                                    ? _blue.withAlphaOpacity(0.4)
                                     : Colors.transparent,
                               ),
                             ),
@@ -514,9 +515,9 @@ class _LoanRequestCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: _amber.withOpacity(0.07),
+                color: _amber.withAlphaOpacity(0.07),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: _amber.withOpacity(0.15)),
+                border: Border.all(color: _amber.withAlphaOpacity(0.15)),
               ),
               child: Row(
                 children: [
@@ -554,12 +555,13 @@ class _LoanRequestCard extends StatelessWidget {
                     context,
                     listen: false,
                   );
+                  final messenger = ScaffoldMessenger.of(context);
 
                   // PASTE YOUR SUPABASE UUID HERE
                   const studentId = '9c003de2-e227-48f2-8f8a-7129e25594df';
 
                   // Show a loading message
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     const SnackBar(content: Text('Submitting loan request...')),
                   );
 
@@ -645,7 +647,7 @@ class _ActiveLoansSection extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: _red.withOpacity(0.12),
+                  color: _red.withAlphaOpacity(0.12),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -807,7 +809,7 @@ class _LoanHistorySection extends StatelessWidget {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: e.value.color.withOpacity(0.1),
+                          color: e.value.color.withAlphaOpacity(0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
@@ -846,7 +848,7 @@ class _LoanHistorySection extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: e.value.color.withOpacity(0.1),
+                          color: e.value.color.withAlphaOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -957,7 +959,7 @@ class _EduTileState extends State<_EduTile> {
         color: _card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: _expanded ? widget.item.color.withOpacity(0.3) : _divider,
+          color: _expanded ? widget.item.color.withAlphaOpacity(0.3) : _divider,
         ),
       ),
       padding: const EdgeInsets.all(16),
@@ -970,7 +972,7 @@ class _EduTileState extends State<_EduTile> {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: widget.item.color.withOpacity(0.1),
+                  color: widget.item.color.withAlphaOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
