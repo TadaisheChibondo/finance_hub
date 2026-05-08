@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:hive_flutter/hive_flutter.dart'; // Hive imported for offline budgeting
 import '../providers/loan_provider.dart';
 import '../services/supabase_service.dart';
+import 'financial_advice.dart';
+import 'auth_screen.dart';
 
 // ─── Colour tokens ────────────────────────────────────────────────────────────
 const _bg = Color(0xFF0D0F14);
@@ -18,7 +21,9 @@ const _textSecondary = Color(0xFF8A90A2);
 const _divider = Color(0xFF2A3045);
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final Function(int)? onNavigate;
+  const DashboardScreen({super.key, this.onNavigate});
+
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
@@ -58,21 +63,51 @@ class _DashboardScreenState extends State<DashboardScreen>
               const SliverToBoxAdapter(child: SizedBox(height: 20)),
               const SliverToBoxAdapter(child: _BalanceCard()),
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
-              const SliverToBoxAdapter(child: _SectionLabel('Quick Actions')),
+
+              // QUICK ACTIONS
+              SliverToBoxAdapter(child: _SectionLabel('Quick Actions')),
               const SliverToBoxAdapter(child: SizedBox(height: 12)),
-              const SliverToBoxAdapter(child: _QuickActions()),
+              SliverToBoxAdapter(
+                child: _QuickActions(onNavigate: widget.onNavigate),
+              ),
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
-              const SliverToBoxAdapter(
-                child: _SectionLabel('Spending Summary'),
+
+              // SPENDING SUMMARY
+              SliverToBoxAdapter(
+                child: _SectionLabel(
+                  'Spending Summary',
+                  onSeeAll: () => widget.onNavigate?.call(2),
+                ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 12)),
               const SliverToBoxAdapter(child: _SpendingSummaryCard()),
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
-              const SliverToBoxAdapter(child: _SectionLabel('Active Loan')),
+
+              // ACTIVE LOAN
+              SliverToBoxAdapter(
+                child: _SectionLabel(
+                  'Active Loan',
+                  onSeeAll: () => widget.onNavigate?.call(1),
+                ),
+              ),
               const SliverToBoxAdapter(child: SizedBox(height: 12)),
               const SliverToBoxAdapter(child: _ActiveLoanCard()),
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
-              const SliverToBoxAdapter(child: _SectionLabel('Smart Insights')),
+
+              // SMART INSIGHTS
+              SliverToBoxAdapter(
+                child: _SectionLabel(
+                  'Smart Insights',
+                  onSeeAll: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const FinancialAdviceScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
               const SliverToBoxAdapter(child: SizedBox(height: 12)),
               const SliverToBoxAdapter(child: _SmartInsights()),
               const SliverToBoxAdapter(child: SizedBox(height: 32)),
@@ -85,9 +120,14 @@ class _DashboardScreenState extends State<DashboardScreen>
 }
 
 // ─── Top Bar ──────────────────────────────────────────────────────────────────
+// ─── Top Bar ──────────────────────────────────────────────────────────────────
 class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    final userName =
+        currentUser?.userMetadata?['full_name']?.split(' ')[0] ?? 'Student';
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Row(
@@ -95,13 +135,13 @@ class _TopBar extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Good morning,',
                 style: TextStyle(color: _textSecondary, fontSize: 13),
               ),
               const SizedBox(height: 2),
               Text(
-                'Tadaishe 👋',
+                '$userName 👋',
                 style: TextStyle(
                   color: _textPrimary,
                   fontSize: 20,
@@ -112,14 +152,33 @@ class _TopBar extends StatelessWidget {
             ],
           ),
           const Spacer(),
-          _IconBtn(icon: Icons.notifications_outlined, badge: true),
+
+          // 🔴 NEW LOGOUT BUTTON
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, color: _red),
+            tooltip: 'Logout',
+            onPressed: () async {
+              // Sign out from Supabase
+              await Supabase.instance.client.auth.signOut();
+
+              // Navigate back to AuthScreen and clear the navigation history
+              if (context.mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AuthScreen()),
+                  (route) => false,
+                );
+              }
+            },
+          ),
+
           const SizedBox(width: 10),
           CircleAvatar(
             radius: 20,
             backgroundColor: _greenDim,
             child: Text(
-              'T',
-              style: TextStyle(
+              userName.isNotEmpty ? userName[0].toUpperCase() : 'S',
+              style: const TextStyle(
                 color: _textPrimary,
                 fontWeight: FontWeight.w800,
                 fontSize: 16,
@@ -170,8 +229,7 @@ class _BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // PASTE YOUR UUID HERE
-    const testBorrowerId = 'YOUR_BORROWER_UUID_HERE';
+    final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -192,7 +250,7 @@ class _BalanceCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Text(
+                  const Text(
                     'Wallet Balance',
                     style: TextStyle(
                       color: _textSecondary,
@@ -201,6 +259,65 @@ class _BalanceCard extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
+                  // NEW: "Add Funds" Testing Button!
+                  GestureDetector(
+                    onTap: () async {
+                      if (userId.isEmpty) return;
+                      final supabase = Supabase.instance.client;
+                      final currentUser = supabase
+                          .auth
+                          .currentUser; // Grab the user to get their email!
+
+                      // 1. Safely check if the user has a row using .maybeSingle()
+                      final res = await supabase
+                          .from('students')
+                          .select('balance')
+                          .eq('id', userId)
+                          .maybeSingle();
+
+                      if (res == null) {
+                        // 2. Create the row with the $100 balance AND the required email
+                        await supabase.from('students').insert({
+                          'id': userId,
+                          'balance': 100.00,
+                          'nust_email':
+                              currentUser?.email ??
+                              'unknown@students.nust.ac.zw', // Satisfies the database rule!
+                        });
+                      } else {
+                        // 3. If a row does exist, just add $100 to the current balance
+                        final currentBalance = res['balance'] ?? 0.0;
+                        await supabase
+                            .from('students')
+                            .update({'balance': currentBalance + 100.00})
+                            .eq('id', userId);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _green.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.add, color: _green, size: 14),
+                          SizedBox(width: 4),
+                          Text(
+                            'Add Funds',
+                            style: TextStyle(
+                              color: _green,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -216,12 +333,12 @@ class _BalanceCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 2),
-                  // LIVE DATA FETCH FROM SUPABASE
-                  FutureBuilder<List<Map<String, dynamic>>>(
-                    future: Supabase.instance.client
+                  // NEW: StreamBuilder listens to Supabase in REAL TIME
+                  StreamBuilder<List<Map<String, dynamic>>>(
+                    stream: Supabase.instance.client
                         .from('students')
-                        .select('balance')
-                        .eq('id', testBorrowerId),
+                        .stream(primaryKey: ['id'])
+                        .eq('id', userId),
                     builder: (context, snapshot) {
                       String balance = '0.00';
                       if (snapshot.hasData && snapshot.data!.isNotEmpty) {
@@ -229,7 +346,7 @@ class _BalanceCard extends StatelessWidget {
                       }
                       return Text(
                         balance,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: _textPrimary,
                           fontSize: 40,
                           fontWeight: FontWeight.w800,
@@ -244,24 +361,34 @@ class _BalanceCard extends StatelessWidget {
               const SizedBox(height: 20),
               Container(height: 1, color: _divider),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  _BalanceStat(
-                    label: 'Weekly Limit',
-                    value: '\$340.20',
-                    color: _green,
-                    icon: Icons.calendar_today_outlined,
-                  ),
-                  const SizedBox(width: 8),
-                  Container(width: 1, height: 36, color: _divider),
-                  const SizedBox(width: 8),
-                  _BalanceStat(
-                    label: 'Monthly Limit',
-                    value: '\$890.00',
-                    color: _blue,
-                    icon: Icons.date_range_outlined,
-                  ),
-                ],
+              // LIVE HIVE DATA FOR LIMITS
+              ValueListenableBuilder(
+                valueListenable: Hive.box('budgetBox').listenable(),
+                builder: (context, box, child) {
+                  // Fetch monthly, and automatically calculate weekly!
+                  final monthly = box.get('monthlyLimit', defaultValue: 890.00);
+                  final weekly = monthly / 4;
+
+                  return Row(
+                    children: [
+                      _BalanceStat(
+                        label: 'Weekly Limit',
+                        value: '\$${weekly.toStringAsFixed(2)}',
+                        color: _green,
+                        icon: Icons.calendar_today_outlined,
+                      ),
+                      const SizedBox(width: 8),
+                      Container(width: 1, height: 36, color: _divider),
+                      const SizedBox(width: 8),
+                      _BalanceStat(
+                        label: 'Monthly Limit',
+                        value: '\$${monthly.toStringAsFixed(2)}',
+                        color: _blue,
+                        icon: Icons.date_range_outlined,
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -322,7 +449,8 @@ class _BalanceStat extends StatelessWidget {
 
 // ─── Quick Actions ────────────────────────────────────────────────────────────
 class _QuickActions extends StatelessWidget {
-  const _QuickActions();
+  final Function(int)? onNavigate;
+  const _QuickActions({this.onNavigate});
 
   @override
   Widget build(BuildContext context) {
@@ -337,21 +465,32 @@ class _QuickActions extends StatelessWidget {
                     icon: Icons.account_balance_wallet_outlined,
                     label: 'Request\nLoan',
                     color: _amber,
+                    onTap: () => onNavigate?.call(1),
                   ),
                   _ActionTile(
                     icon: Icons.add_card_outlined,
                     label: 'Add\nExpense',
                     color: _blue,
+                    onTap: () => onNavigate?.call(2),
                   ),
                   _ActionTile(
                     icon: Icons.pie_chart_outline,
                     label: 'Create\nBudget',
                     color: _green,
+                    onTap: () => onNavigate?.call(2),
                   ),
                   _ActionTile(
                     icon: Icons.auto_awesome_outlined,
                     label: 'Get\nAdvice',
                     color: Color(0xFFBF8FFF),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const FinancialAdviceScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ]
                 .map(
@@ -370,102 +509,132 @@ class _ActionTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
+  final VoidCallback? onTap;
+
   const _ActionTile({
     required this.icon,
     required this.label,
     required this.color,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 62,
-          height: 62,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: color.withOpacity(0.2)),
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 62,
+            height: 62,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: color.withOpacity(0.2)),
+            ),
+            child: Icon(icon, color: color, size: 26),
           ),
-          child: Icon(icon, color: color, size: 26),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: _textSecondary,
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            height: 1.3,
+          const SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: _textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              height: 1.3,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-// ─── Spending Summary (Static Prototype) ──────────────────────────────────────
+// ─── Spending Summary (LIVE FROM HIVE) ────────────────────────────────────────
 class _SpendingSummaryCard extends StatelessWidget {
   const _SpendingSummaryCard();
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        decoration: BoxDecoration(
-          color: _card,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _divider),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  "You've spent",
-                  style: TextStyle(color: _textSecondary, fontSize: 13),
-                ),
-                const Spacer(),
-                Text(
-                  'This Month',
-                  style: TextStyle(color: _textSecondary, fontSize: 12),
-                ),
-              ],
+      child: ValueListenableBuilder(
+        valueListenable: Hive.box('budgetBox').listenable(),
+        builder: (context, box, child) {
+          final monthlyLimit = box.get('monthlyLimit', defaultValue: 890.00);
+          final spentThisMonth = box.get(
+            'spentThisMonth',
+            defaultValue: 578.50,
+          );
+
+          final double progress = monthlyLimit > 0
+              ? (spentThisMonth / monthlyLimit).clamp(0.0, 1.0)
+              : 0.0;
+          final int percent = (progress * 100).toInt();
+          final Color progressColor = percent >= 90 ? _red : _amber;
+
+          return Container(
+            decoration: BoxDecoration(
+              color: _card,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _divider),
             ),
-            const SizedBox(height: 4),
-            Row(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '65%',
-                  style: TextStyle(
-                    color: _amber,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
+                Row(
+                  children: [
+                    Text(
+                      "You've spent",
+                      style: const TextStyle(
+                        color: _textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '\$${spentThisMonth.toStringAsFixed(2)} / \$${monthlyLimit.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        color: _textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text(
+                      '$percent%',
+                      style: TextStyle(
+                        color: progressColor,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'of your budget',
+                      style: TextStyle(color: _textSecondary, fontSize: 13),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 8,
+                    backgroundColor: _cardAlt,
+                    valueColor: AlwaysStoppedAnimation<Color>(progressColor),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'of your budget',
-                  style: TextStyle(color: _textSecondary, fontSize: 13),
-                ),
               ],
             ),
-            const SizedBox(height: 14),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: 0.65,
-                minHeight: 8,
-                backgroundColor: _cardAlt,
-                valueColor: const AlwaysStoppedAnimation<Color>(_amber),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -488,9 +657,7 @@ class _ActiveLoanCard extends StatelessWidget {
             ),
           );
         }
-
         final latestLoan = provider.pendingLoans.first;
-
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Container(
@@ -613,10 +780,8 @@ class _SmartInsights extends StatelessWidget {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: supabase.getFinancialAdvice(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty)
           return const SizedBox.shrink();
-        }
-
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
@@ -693,7 +858,10 @@ class _InsightTile extends StatelessWidget {
 
 class _SectionLabel extends StatelessWidget {
   final String text;
-  const _SectionLabel(this.text);
+  final VoidCallback? onSeeAll;
+
+  const _SectionLabel(this.text, {this.onSeeAll});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -709,7 +877,13 @@ class _SectionLabel extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          Text('See all', style: TextStyle(color: _green, fontSize: 12)),
+          GestureDetector(
+            onTap: onSeeAll,
+            child: Text(
+              'See all',
+              style: TextStyle(color: _green, fontSize: 12),
+            ),
+          ),
         ],
       ),
     );
